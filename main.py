@@ -3,8 +3,8 @@ from pathlib import Path
 import numpy as np
 
 from entropy import calcular_entropia0_raw, calcular_entropia1_raw
-from quantitzacio import quantitzacio
-from desquantitzacio import desquantitzacio
+from quantitzacio import quantitzacio_escalar, quantitzacio_regions, quantitzacio_blocs
+from desquantitzacio import desquantitzacio_escalar, desquantitzacio_regions, desquantitzacio_blocs
 
 def carrega_imatge(ruta_imagen):
     parts=Path(ruta_imagen).name.split(".")
@@ -22,7 +22,7 @@ def carrega_imatge(ruta_imagen):
     dtype = np.dtype(f"{tipo}int{bits}")
     imagen_raw = np.fromfile(ruta_imagen, dtype=dtype)
 
-    imagen_raw = imagen_raw.reshape((x, y, z))
+    imagen_raw = imagen_raw.reshape((y, x, z))
 
     return imagen_raw, parts[0], parts[1], parts[2]
 
@@ -34,39 +34,79 @@ if __name__ == "__main__":
 
     imatge, part0, part1, part2 = carrega_imatge(ruta)
 
+    # Entropia de la imatge original
     if entropia == 0:
         H0 = calcular_entropia0_raw(imatge)
         print("Entropia ordre 0: " + str(H0))
+
     elif entropia == 1:
         H1 = calcular_entropia1_raw(imatge)
         print("Entropia ordre 1: " + str(H1))
 
+
+    # Quantització escalar
     if tipus_quantitzacio == "escalar":
+
         delta = int(sys.argv[4])
-        q = quantitzacio(imatge, delta)
+
+        q = quantitzacio_escalar(imatge, delta)
         H0_q = calcular_entropia0_raw(q)
-        H1_q = calcular_entropia1_raw(q)
         print("Entropia ordre 0 quantitzat: " + str(H0_q))
-        print("Entropia ordre 1 quantitzat: " + str(H1_q))
-        ruta_quantitzada = "Quantitzada"+ str(delta) +part0+"."+part1+".raw"
+
+        ruta_quantitzada = ("Quantitzada" + str(delta) + part0 + "." + part1 + ".raw")
         q.tofile(ruta_quantitzada)
+
+        # Carreguem de nou la imatge quantitzada
         imatge_quantitzada = carrega_imatge(ruta_quantitzada)[0]
-        desq = desquantitzacio(imatge_quantitzada, delta)
-        H0_desq= calcular_entropia0_raw(desq)
-        H1_desq= calcular_entropia1_raw(desq)
+        desq = desquantitzacio_escalar(imatge_quantitzada,delta)
+        H0_desq = calcular_entropia0_raw(desq)
         print("Entropia ordre 0 desquantitzat: " + str(H0_desq))
-        print("Entropia ordre 1 desquantitzat: " + str(H1_desq))
-        ruta_desquantitzada = "Desquantitzada"+ str(delta) + "."+part0+"."+part1+".raw"
+
+        ruta_desquantitzada = ("Desquantitzada" + str(delta) + "." + part0 + "." + part1 + ".raw")
         desq.tofile(ruta_desquantitzada)
-        
-        
 
-    elif tipus_quantitzacio == "blocs":
-        # quantització per blocs
-        pass
 
+    # Quantització per regions
     elif tipus_quantitzacio == "regions":
-        # quantització per regions
-        pass
 
+        delta = int(sys.argv[4])
+
+        q = quantitzacio_regions(imatge,delta)
+        H0_q = calcular_entropia0_raw(q)
+        print("Entropia ordre 0 quantitzat: " + str(H0_q))
+
+        ruta_quantitzada = ("QuantitzadaRegions" + str(delta) + "." + part0 + "." + part1 + ".raw")
+        q.tofile(ruta_quantitzada)
+
+        # Carreguem de nou la imatge quantitzada
+        imatge_quantitzada = carrega_imatge(ruta_quantitzada)[0]
+        desq = desquantitzacio_regions(imatge_quantitzada,delta)
     
+        H0_desq = calcular_entropia0_raw(desq)
+        print("Entropia ordre 0 desquantitzat: " + str(H0_desq))
+
+        ruta_desquantitzada = ("DesquantitzadaRegions" + str(delta) + "." + part0 + "." + part1 + ".raw")
+        desq.tofile(ruta_desquantitzada)
+
+
+    # Quantització per blocs
+    elif tipus_quantitzacio == "blocs":
+
+        mida_bloc = int(sys.argv[4])
+        max_delta = int(sys.argv[5])
+
+        q = quantitzacio_blocs(imatge,mida_bloc, max_delta)
+        H0_q = calcular_entropia0_raw(q)
+        print("Entropia ordre 0 quantitzat: " + str(H0_q))
+
+        ruta_quantitzada = ("QuantitzadaBlocs" + str(mida_bloc) + "." + part0 + "." + part1 + ".raw")
+        q.tofile(ruta_quantitzada)
+
+        # Carreguem de nou la imatge quantitzada
+        imatge_quantitzada = carrega_imatge(ruta_quantitzada)[0]
+        desq = desquantitzacio_blocs(imatge_quantitzada,mida_bloc, max_delta)
+        H0_desq = calcular_entropia0_raw(desq)
+        print("Entropia ordre 0 desquantitzat: " + str(H0_desq))
+
+        ruta_desquantitzada = ("DesquantitzadaBlocs" + str(mida_bloc) + "." + part0 + "." + part1 + ".raw")
+        desq.tofile(ruta_desquantitzada)
