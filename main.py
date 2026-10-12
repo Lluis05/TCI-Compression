@@ -7,11 +7,12 @@ from quantitzacio import quantitzacio_escalar, quantitzacio_regions, quantitzaci
 from desquantitzacio import desquantitzacio_escalar, desquantitzacio_regions, desquantitzacio_blocs
 
 def carrega_imatge(ruta_imagen):
-    parts=Path(ruta_imagen).name.split(".")
+    parts = Path(ruta_imagen).name.split(".")
     
     format, z, y, x = parts[-2].split("_")
     x = x.removesuffix("raw")
     sign = format[0]
+    endian = format[1:3]  
     bits = int(format[3:])
 
     z = int(z)
@@ -20,8 +21,14 @@ def carrega_imatge(ruta_imagen):
 
     tipo = "u" if sign == "u" else ""
     dtype = np.dtype(f"{tipo}int{bits}")
-    imagen_raw = np.fromfile(ruta_imagen, dtype=dtype)
+    
+    # canvi
+    if endian == "be":
+        dtype = dtype.newbyteorder('>')
+    elif endian == "le":
+        dtype = dtype.newbyteorder('<')
 
+    imagen_raw = np.fromfile(ruta_imagen, dtype=dtype)
     imagen_raw = imagen_raw.reshape((y, x, z))
 
     return imagen_raw, parts[0], parts[1], parts[2]
@@ -33,6 +40,14 @@ if __name__ == "__main__":
     tipus_quantitzacio = sys.argv[3]
 
     imatge, part0, part1, part2 = carrega_imatge(ruta)
+
+    # Deducir el formato exacto para NumPy (ej: 'ube16' -> '>u2', 'ule8' -> '<u1')
+    format_str = part1.split('_')[0] # Extrae solo la parte "ube16"
+    signo = 'u' if format_str[0] == 'u' else 'i'
+    endian = '>' if format_str[1:3] == 'be' else '<'
+    bytes_img = int(format_str[3:]) // 8 # Ahora divide 16 // 8 = 2 correctamente
+    formato_original = f"{endian}{signo}{bytes_img}"
+
 
     # Entropia de la imatge original
     if entropia == 0:
@@ -54,7 +69,7 @@ if __name__ == "__main__":
         print("Entropia ordre 0 quantitzat: " + str(H0_q))
 
         ruta_quantitzada = ("Quantitzada" + str(delta) + part0 + "." + part1 + ".raw")
-        q.tofile(ruta_quantitzada)
+        q.astype(formato_original).tofile(ruta_quantitzada)
 
         # Carreguem de nou la imatge quantitzada
         imatge_quantitzada = carrega_imatge(ruta_quantitzada)[0]
@@ -63,7 +78,7 @@ if __name__ == "__main__":
         print("Entropia ordre 0 desquantitzat: " + str(H0_desq))
 
         ruta_desquantitzada = ("Desquantitzada" + str(delta) + "." + part0 + "." + part1 + ".raw")
-        desq.tofile(ruta_desquantitzada)
+        desq.astype(formato_original).tofile(ruta_desquantitzada)
 
 
     # Quantització per regions
@@ -76,7 +91,7 @@ if __name__ == "__main__":
         print("Entropia ordre 0 quantitzat: " + str(H0_q))
 
         ruta_quantitzada = ("QuantitzadaRegions" + str(delta) + "." + part0 + "." + part1 + ".raw")
-        q.tofile(ruta_quantitzada)
+        q.astype(formato_original).tofile(ruta_quantitzada)
 
         # Carreguem de nou la imatge quantitzada
         imatge_quantitzada = carrega_imatge(ruta_quantitzada)[0]
@@ -86,7 +101,7 @@ if __name__ == "__main__":
         print("Entropia ordre 0 desquantitzat: " + str(H0_desq))
 
         ruta_desquantitzada = ("DesquantitzadaRegions" + str(delta) + "." + part0 + "." + part1 + ".raw")
-        desq.tofile(ruta_desquantitzada)
+        desq.astype(formato_original).tofile(ruta_desquantitzada)
 
 
     # Quantització per blocs
