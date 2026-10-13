@@ -40,13 +40,6 @@ if __name__ == "__main__":
     tipus_quantitzacio = sys.argv[3]
 
     imatge, part0, part1, part2 = carrega_imatge(ruta)
-
-    # Deducir el formato exacto para NumPy (ej: 'ube16' -> '>u2', 'ule8' -> '<u1')
-    # format_str = part1.split('_')[0] # Extrae solo la parte "ube16"
-    # signo = 'u' if format_str[0] == 'u' else 'i'
-    # endian = '>' if format_str[1:3] == 'be' else '<'
-    # bytes_img = int(format_str[3:]) // 8 # Ahora divide 16 // 8 = 2 correctamente
-    # formato_original = f"{endian}{signo}{bytes_img}"
     formato_original = imatge.dtype
 
     # Entropia de la imatge original
@@ -115,7 +108,7 @@ if __name__ == "__main__":
         print("Entropia ordre 0 quantitzat: " + str(H0_q))
 
         ruta_quantitzada = ("QuantitzadaBlocs" + str(mida_bloc) + "." + part0 + "." + part1 + ".raw")
-        q.tofile(ruta_quantitzada)
+        q.astype(formato_original).tofile(ruta_quantitzada)
 
         # Carreguem de nou la imatge quantitzada
         imatge_quantitzada = carrega_imatge(ruta_quantitzada)[0]
@@ -124,4 +117,4 @@ if __name__ == "__main__":
         print("Entropia ordre 0 desquantitzat: " + str(H0_desq))
 
         ruta_desquantitzada = ("DesquantitzadaBlocs" + str(mida_bloc) + "." + part0 + "." + part1 + ".raw")
-        desq.tofile(ruta_desquantitzada)
+        desq.astype(formato_original).tofile(ruta_desquantitzada)
