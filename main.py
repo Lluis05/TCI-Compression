@@ -6,7 +6,10 @@ import numpy as np
 from entropy import calcular_entropia0_raw, calcular_entropia1_raw
 from quantitzacio import quantitzacio_escalar, quantitzacio_regions, quantitzacio_blocs
 from desquantitzacio import desquantitzacio_escalar, desquantitzacio_regions, desquantitzacio_blocs
-from haar import haar_2d
+from haar import haar_2d, haar_invers2d
+from calculs import *
+
+max = 255
 
 def carrega_imatge(ruta_imagen):
     parts = Path(ruta_imagen).name.split(".")
@@ -47,6 +50,7 @@ if __name__ == "__main__":
 
     if is_haar == 1:
         opcio = 2
+        print(f"Opcio: {opcio}")
         if opcio == 1:
             y = haar_2d(imatge)
             y.astype(formato_original).tofile("Haar." + part0 + "." + part1 + ".raw")
@@ -60,8 +64,12 @@ if __name__ == "__main__":
                     H0_q = calcular_entropia0_raw(q)
                     print("Entropia ordre 0 quantitzat: " + str(H0_q))
             
-                    ruta_quantitzada = ("Quantitzada" + str(delta) + "." + part0 + "." + part1 + ".raw")
+                    ruta_quantitzada = ("QuantitzadaHaarEscalar" + str(delta) + "." + part0 + "." + part1 + ".raw")
                     q.astype(formato_original).tofile(ruta_quantitzada)
+
+                    desq = desquantitzacio_escalar(q,delta)
+                    yInvers = haar_invers2d(desq)
+                    ruta_desquantitzada = ("DesquantitzadaHaarEscalar." + part0 + "." + part1 + ".raw")
                     
             elif tipus_quantitzacio == "regions":
             
@@ -71,8 +79,12 @@ if __name__ == "__main__":
                     H0_q = calcular_entropia0_raw(q)
                     print("Entropia ordre 0 quantitzat: " + str(H0_q))
             
-                    ruta_quantitzada = ("QuantitzadaRegions" + str(delta) + "." + part0 + "." + part1 + ".raw")
+                    ruta_quantitzada = ("QuantitzadaHaarRegions" + str(delta) + "." + part0 + "." + part1 + ".raw")
                     q.astype(formato_original).tofile(ruta_quantitzada)
+
+                    desq = desquantitzacio_regions(q,delta)
+                    yInvers = haar_invers2d(desq)
+                    ruta_desquantitzada = ("DesquantitzadaHaarRegions." + part0 + "." + part1 + ".raw")
 
             elif tipus_quantitzacio == "blocs":
             
@@ -83,8 +95,16 @@ if __name__ == "__main__":
                     H0_q = calcular_entropia0_raw(q)
                     print("Entropia ordre 0 quantitzat: " + str(H0_q))
             
-                    ruta_quantitzada = ("QuantitzadaBlocs" + str(mida_bloc) + "." + part0 + "." + part1 + ".raw")
+                    ruta_quantitzada = ("QuantitzadaHaarBlocs" + str(mida_bloc) + "." + part0 + "." + part1 + ".raw")
                     q.astype(formato_original).tofile(ruta_quantitzada)
+
+                    desq = desquantitzacio_blocs(q,mida_bloc, max_delta)
+                    yInvers = haar_invers2d(desq)
+                    ruta_desquantitzada = ("DesquantitzadaHaarBlocs." + part0 + "." + part1 + ".raw")
+
+            yInvers = np.clip(yInvers, 0, np.iinfo(formato_original).max) # evita "wrap-around" es a dir que doni valors fora de 0 o 255 que donarien un valor contrari
+            yInvers.astype(formato_original).tofile(ruta_desquantitzada)
+            reconstruida = yInvers.astype(formato_original)
         
         elif opcio == 2:
             if tipus_quantitzacio == "escalar":
@@ -108,6 +128,7 @@ if __name__ == "__main__":
             
                     ruta_quantitzada = ("QuantitzadaRegions" + str(delta) + "." + part0 + "." + part1 + ".raw")
                     q.astype(formato_original).tofile(ruta_quantitzada)
+                   
 
             elif tipus_quantitzacio == "blocs":
             
@@ -120,11 +141,39 @@ if __name__ == "__main__":
             
                     ruta_quantitzada = ("QuantitzadaBlocs" + str(mida_bloc) + "." + part0 + "." + part1 + ".raw")
                     q.astype(formato_original).tofile(ruta_quantitzada)
-            
+                    
             y = haar_2d(q)
-            y.astype(formato_original).tofile("Haar." + part0 + "." + part1 + ".raw")
+            ruta_haar = ("Haar." + part0 + "." + part1 + ".raw")
+            y.astype(formato_original).tofile(ruta_haar)
             H0_y = calcular_entropia0_raw(y)
-            print("Entropia ordre 0 haar: " + str(H0_y))          
+            print("Entropia ordre 0 haar: " + str(H0_y))
+
+            yInvers = haar_invers2d(y).astype(formato_original) #aixi la desquantitzacio torna a veure pixels de fins a 255 
+
+            if tipus_quantitzacio == "escalar":
+                desq = desquantitzacio_escalar(yInvers,delta)
+                ruta_desquantitzada = ("DesquantitzadaHaarEscalar" + str(delta) + "." + part0 + "." + part1 + ".raw")
+                desq.astype(formato_original).tofile(ruta_desquantitzada)
+
+            elif tipus_quantitzacio == "regions":
+                desq = desquantitzacio_regions(yInvers,delta)
+                ruta_desquantitzada = ("DesquantitzadaHaarRegions" + str(delta) + "." + part0 + "." + part1 + ".raw")
+                desq.astype(formato_original).tofile(ruta_desquantitzada)
+
+            elif tipus_quantitzacio == "blocs":
+                desq = desquantitzacio_blocs(yInvers,mida_bloc, max_delta)
+                ruta_desquantitzada = ("DesquantitzadaHaarBlocs" + str(mida_bloc) + "." + part0 + "." + part1 + ".raw")
+                desq.astype(formato_original).tofile(ruta_desquantitzada)
+
+            reconstruida = desq.astype(formato_original)
+        
+        pae = calcular_pae(imatge, reconstruida)
+        print("PAE: " + str(pae))
+        mse = calcular_mse(imatge, reconstruida)
+        print("MSE: " + str(mse))
+        psnr = calcular_psnr(imatge, reconstruida,max)
+        print("PSNR: " + str(psnr))
+        
                
     # Entropia de la imatge original
     if entropia == 0 and is_haar == 0:

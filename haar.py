@@ -24,4 +24,26 @@ def haar_2d(imatge):
     return resultat
 
 def haar_invers(imatge):
-    pass
+    datos = imatge.flatten()
+    n = len(datos) // 2
+    s = datos[:n]
+    d = datos[n:]
+    resultat = []
+    for i in range(0, n):
+        x0 = s[i] - floor(d[i] / 2)
+        x1 = d[i] + x0
+        resultat.append(x0)
+        resultat.append(x1)
+
+    return np.array(resultat)
+
+def haar_invers2d(imatge):
+    imatge = imatge.astype(np.int64)
+
+    # Transformada 1D a cada columna
+    columnes = np.apply_along_axis(haar_invers, axis=0, arr=imatge)
+    
+    # Transformada 1D a cada fila
+    resultat = np.apply_along_axis(haar_invers, axis=1, arr=columnes)
+
+    return resultat
