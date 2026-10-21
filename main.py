@@ -49,7 +49,7 @@ if __name__ == "__main__":
     formato_original = imatge.dtype
 
     if is_haar == 1:
-        opcio = 2
+        opcio = 1
         print(f"Opcio: {opcio}")
         if opcio == 1:
             y = haar_2d(imatge)
@@ -129,7 +129,6 @@ if __name__ == "__main__":
                     ruta_quantitzada = ("QuantitzadaRegions" + str(delta) + "." + part0 + "." + part1 + ".raw")
                     q.astype(formato_original).tofile(ruta_quantitzada)
                    
-
             elif tipus_quantitzacio == "blocs":
             
                     mida_bloc = int(sys.argv[5])
